@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language Reverse Diffusion</title>
+  <style>
+    :root {
+      --bg: #020202;
+      --panel: rgba(10, 10, 10, 0.92);
+      --text: #f2f2f2;
+      --muted: rgba(255, 255, 255, 0.38);
+      --soft: rgba(255, 255, 255, 0.16);
+      --line: rgba(255, 255, 255, 0.08);
+      --accent: rgba(255, 255, 255, 0.8);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.06), transparent 22%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02), transparent 36%),
+        #000;
+      color: var(--text);
+      font-family: "SF Mono", "IBM Plex Mono", "Menlo", monospace;
+      overflow: hidden;
+    }
+
+    .grain::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.08;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 3px 3px, 4px 4px;
+      mix-blend-mode: screen;
+    }
+
+    main {
+      position: relative;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+
+    .hud {
+      position: fixed;
+      top: 18px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      z-index: 2;
+    }
+
+    .hud strong {
+      color: rgba(255, 255, 255, 0.78);
+      font-weight: 600;
+    }
+
+    .stage {
+      width: min(980px, 100%);
+      min-height: 580px;
+      position: relative;
+      display: grid;
+      place-items: center;
+      border: 1px solid transparent;
+    }
+
+    .fragments {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .fragment {
+      position: absolute;
+      color: rgba(255, 255, 255, 0.14);
+      font-size: 14px;
+      line-height: 1;
+      transition: opacity 220ms ease, transform 220ms ease, filter 220ms ease;
+      filter: blur(0.8px);
+      white-space: pre;
+    }
+
+    .beam {
+      position: absolute;
+      inset: 12% 10%;
+      border-radius: 40px;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), transparent 46%);
+      filter: blur(34px);
+      pointer-events: none;
+    }
+
+    .code-panel {
+      position: relative;
+      width: min(760px, 100%);
+      padding: 54px 44px 42px;
+      background: linear-gradient(180deg, rgba(5, 5, 5, 0.88), rgba(2, 2, 2, 0.78));
+      border-radius: 18px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.02),
+        0 30px 80px rgba(0, 0, 0, 0.72);
+      overflow: hidden;
+      transition: transform 220ms ease, filter 220ms ease, opacity 220ms ease;
+    }
+
+    .code-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 22%, transparent 78%, rgba(255, 255, 255, 0.02)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018), transparent 12%, transparent 88%, rgba(255, 255, 255, 0.018));
+      pointer-events: none;
+    }
+
+    .code-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.03) 46%,
+        rgba(255, 255, 255, 0.06) 50%,
+        rgba(255, 255, 255, 0.03) 54%,
+        transparent 100%
+      );
+      transform: translateY(var(--scan-y, -140%));
+      opacity: var(--scan-opacity, 0);
+      pointer-events: none;
+      transition: transform 120ms linear, opacity 120ms linear;
+    }
+
+    .title {
+      position: absolute;
+      top: 16px;
+      left: 22px;
+      color: rgba(255, 255, 255, 0.18);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .code {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 8px;
+      min-height: 420px;
+      justify-content: start;
+    }
+
+    .line {
+      position: relative;
+      display: block;
+      min-height: 34px;
+      white-space: pre;
+      font-size: clamp(16px, 2vw, 22px);
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.18);
+      opacity: 0.22;
+      filter: blur(1px);
+      transition:
+        opacity 260ms ease,
+        color 260ms ease,
+        filter 260ms ease,
+        transform 260ms ease,
+        left 260ms ease,
+        top 260ms ease,
+        text-shadow 260ms ease;
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0);
+      left: 0;
+      top: 0;
+      transform-origin: left center;
+    }
+
+    .ghost {
+      color: rgba(255, 255, 255, 0.18);
+      filter: blur(0.6px);
+    }
+
+    .line.dim {
+      opacity: 0.14;
+      color: rgba(255, 255, 255, 0.28);
+      filter: blur(1.4px);
+    }
+
+    .line.active {
+      opacity: 0.95;
+      color: rgba(255, 255, 255, 0.9);
+      filter: blur(0);
+      transform: translateX(0);
+      text-shadow: 0 0 22px rgba(255, 255, 255, 0.08);
+    }
+
+    .line.settled {
+      opacity: 0.78;
+      color: rgba(255, 255, 255, 0.72);
+      filter: blur(0.2px);
+    }
+
+    .line.final {
+      opacity: 1;
+      color: #fff;
+      filter: none;
+      text-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+    }
+
+    .glitch {
+      color: rgba(255, 255, 255, 0.96);
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.08);
+    }
+
+    .line.indent-1 { padding-left: 40px; }
+    .line.indent-2 { padding-left: 82px; }
+    .line.indent-3 { padding-left: 124px; }
+
+    .metrics {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      color: rgba(255, 255, 255, 0.32);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      z-index: 1;
+    }
+
+    .metrics strong {
+      color: rgba(255, 255, 255, 0.82);
+      font-weight: 600;
+    }
+
+    .timeline {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      width: min(720px, calc(100vw - 40px));
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+
+    .bar {
+      position: relative;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: visible;
+    }
+
+    .fill {
+      width: 0%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.7);
+      transition: width 100ms linear;
+    }
+
+    .labels {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      color: rgba(255, 255, 255, 0.28);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .controls {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 2;
+    }
+
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.82);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    @media (max-width: 720px) {
+      .code-panel {
+        padding: 48px 20px 42px;
+      }
+
+      .line {
+        font-size: 14px;
+        min-height: 28px;
+      }
+
+      .line.indent-1 { padding-left: 18px; }
+      .line.indent-2 { padding-left: 38px; }
+      .line.indent-3 { padding-left: 58px; }
+
+      .metrics {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+      }
+    }
+  </style>
+</head>
+<body class="grain">
+  <div class="hud">
+    <div><strong>Reverse Diffusion</strong> language prototype</div>
+    <div id="phaseLabel">Noise field</div>
+  </div>
+
+  <main>
+    <section class="stage">
+      <div class="beam"></div>
+      <div class="fragments" id="fragments"></div>
+      <div class="code-panel">
+        <div class="title">3-second reconstruction</div>
+        <div class="code" id="codeBlock"></div>
+        <div class="metrics">
+          <span>stability <strong id="stabilityValue">0%</strong></span>
+          <span>entropy <strong id="entropyValue">1.00</strong></span>
+          <span>step <strong id="stepValue">1 / 6</strong></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="timeline">
+    <div class="bar"><div class="fill" id="barFill"></div></div>
+    <div class="labels">
+      <span id="timeLabel">0.0s / 10.0s</span>
+      <span>from noise to clean sequence</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="replayButton" type="button">Replay 3s</button>
+  </div>
+
+  <script>
+    const DURATION_MS = 3000;
+    const PHASES = [
+      { threshold: 0.12, label: "Noise field" },
+      { threshold: 0.28, label: "Anchor recovery" },
+      { threshold: 0.48, label: "Structure alignment" },
+      { threshold: 0.72, label: "Global refinement" },
+      { threshold: 0.9, label: "Local repair" },
+      { threshold: 1.0, label: "Final decode" },
+    ];
+
+    const LINE_SPECS = [
+      {
+        indent: 0,
+        finalText: "class CodeGenerator_Diffusion:",
+        settleAt: 0.5,
+        activeUntil: 0.54,
+        noise: ["c$ass C0deGene#at0r_D|ffu$ion:", "v!bDGeneraT0r_D~%f{^i0n::", "cO_eGe#erator D!|fusi0n~:"],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[20, 30], [6, 11]]
+      },
+      {
+        indent: 1,
+        finalText: "def generate_code(self, prompt):",
+        settleAt: 0.3,
+        activeUntil: 0.6,
+        noise: ["d3f g3n3ra+e_c0de(se!ƒ, pr0m?+):", "d#f ge^erat_c0d3(s3lƒ, p!0mpt):", "de~ gener@tE_c0de(s3lf, pro^?t):"],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[23, 31], [4, 17]]
+      },
+      {
+        indent: 2,
+        finalText: "# Draft",
+        settleAt: 0.42,
+        activeUntil: 0.66,
+        noise: ["# Draƒ+", "# D@a%t", "# D^a?_"],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[2, 7]]
+      },
+      {
+        indent: 2,
+        finalText: "code = self.initial_guess(prompt)",
+        settleAt: 0.56,
+        activeUntil: 0.78,
+        noise: ["c0D3 = s3!f.in!tia1_gu3ss(pr0m?t)", "c^de = seIf.i#i+!al_gue$s(pr@mp+)", "c0d3 = se_f.initi@l_gu3ss(pr%m_)"],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[12, 26], [0, 4]]
+      },
+      {
+        indent: 2,
+        finalText: "# Multi-step global refinement",
+        settleAt: 0.62,
+        activeUntil: 0.84,
+        noise: ["# M^lti-stEp gl0bal reƒ!nement", "# Mμ|ti-st3p g!oba1 ref1n3m3nt", "# Mu|ti-s+ep g|obal r3f!ne^ent"],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[20, 30], [2, 12]]
+      },
+      {
+        indent: 2,
+        finalText: "for step in range(NUM_DIFFUSION_STEPS):",
+        settleAt: 0.72,
+        activeUntil: 0.9,
+        noise: ["f0r st3p in r@nge(NUM_D!FFUSI0N_ST3PS):", "fo# st3p in ra^ge(NUM_DIFFUSI0N_S+EPS):", "f0r s+ep in rang3(NUM_D!FFUSION_STE?S):"],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[18, 37]]
+      },
+      {
+        indent: 3,
+        finalText: "code = self.refine_code(code, prompt)",
+        settleAt: 0.82,
+        activeUntil: 0.95,
+        noise: ["c0de = se!f.reƒ1ne_c0de(c0de, pr0mpt)", "co^e = self.ref!ne_code(cod3, promp_)", "c0D3 = s3lf.r3fine_c0de(c0de, pr0mpt)"],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[31, 37], [7, 24]]
+      },
+      {
+        indent: 3,
+        finalText: "# Structure. Logic. Naming.",
+        settleAt: 0.88,
+        activeUntil: 0.98,
+        noise: ["# Str^ctur3. L0gic. Nami^g.", "# S+ruCture. L0g!c. Na^i_g.", "# Stru%tuRe. L0gic. Nam!ng."],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[20, 27], [2, 12]]
+      },
+      {
+        indent: 2,
+        finalText: "return code",
+        settleAt: 0.96,
+        activeUntil: 1.0,
+        noise: ["r3tu_n c0de", "re+urn co_e", "retu%n c0d3"],
+        scatter: { x: 0, y: 0, rotate: 0, scale: 1 },
+        masks: [[0, 11]]
+      }
+    ];
+
+    const codeBlock = document.getElementById("codeBlock");
+    const fragmentsLayer = document.getElementById("fragments");
+    const phaseLabel = document.getElementById("phaseLabel");
+    const stabilityValue = document.getElementById("stabilityValue");
+    const entropyValue = document.getElementById("entropyValue");
+    const stepValue = document.getElementById("stepValue");
+    const timeLabel = document.getElementById("timeLabel");
+    const barFill = document.getElementById("barFill");
+    const replayButton = document.getElementById("replayButton");
+
+    const lineNodes = LINE_SPECS.map((spec) => {
+      const line = document.createElement("div");
+      line.className = `line indent-${spec.indent}`;
+      line.style.width = `${spec.finalText.length}ch`;
+      line.style.minWidth = `${spec.finalText.length}ch`;
+      codeBlock.appendChild(line);
+      return line;
+    });
+
+    const FRAGMENT_SPECS = [
+      { text: "S", left: "78%", top: "4%" },
+      { text: "{", left: "84%", top: "3%" },
+      { text: "E", left: "71%", top: "4%" },
+      { text: "E", left: "48%", top: "18%" },
+      { text: "S", left: "61%", top: "28%" },
+      { text: "S", left: "87%", top: "30%" },
+      { text: "E", left: "92%", top: "53%" },
+      { text: "S", left: "89%", top: "58%" },
+      { text: "E", left: "93%", top: "79%" },
+      { text: "E E E", left: "2%", top: "76%" }
+    ];
+
+    const fragmentNodes = FRAGMENT_SPECS.map((spec) => {
+      const node = document.createElement("div");
+      node.className = "fragment";
+      node.textContent = spec.text;
+      node.style.left = spec.left;
+      node.style.top = spec.top;
+      fragmentsLayer.appendChild(node);
+      return node;
+    });
+
+    let startTime = 0;
+    let frameId = 0;
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function getPhaseIndex(progress) {
+      for (let i = 0; i < PHASES.length; i += 1) {
+        if (progress <= PHASES[i].threshold) return i;
+      }
+      return PHASES.length - 1;
+    }
+
+    function pickNoise(spec, index, progress, phaseIndex) {
+      return spec.noise[(Math.floor(progress * 20) + phaseIndex + index) % spec.noise.length];
+    }
+
+    function fitToLength(text, length) {
+      if (length <= 0) return "";
+      if (!text) return " ".repeat(length);
+      if (text.length === length) return text;
+      if (text.length > length) return text.slice(0, length);
+      let result = text;
+      while (result.length < length) {
+        result += text;
+      }
+      return result.slice(0, length);
+    }
+
+    function remaskSegment(spec, index, progress, phaseIndex) {
+      if (!spec.masks || progress >= spec.settleAt) return spec.finalText;
+      const revealRatio = clamp(progress / spec.settleAt, 0, 1);
+      const resolvedSegments = Math.floor(revealRatio * spec.masks.length);
+      const noisyBase = pickNoise(spec, index, progress, phaseIndex);
+      let result = "";
+      let cursor = 0;
+      for (let i = 0; i < spec.masks.length; i += 1) {
+        const [start, end] = spec.masks[i];
+        const safeStart = Math.min(start, spec.finalText.length);
+        const safeEnd = Math.min(end, spec.finalText.length);
+        result += spec.finalText.slice(cursor, safeStart);
+        if (i < resolvedSegments) {
+          result += spec.finalText.slice(safeStart, safeEnd);
+        } else {
+          const targetLength = safeEnd - safeStart;
+          const noisySegment = fitToLength(noisyBase.slice(safeStart, safeEnd), targetLength);
+          result += `<span class="glitch">${noisySegment}</span>`;
+        }
+        cursor = safeEnd;
+      }
+      result += spec.finalText.slice(cursor);
+      if (resolvedSegments === 0) {
+        return `<span class="glitch">${fitToLength(noisyBase, spec.finalText.length)}</span>`;
+      }
+      if (resolvedSegments >= spec.masks.length) {
+        return spec.finalText;
+      }
+      return result;
+    }
+
+    function render(progress) {
+      const phaseIndex = getPhaseIndex(progress);
+      phaseLabel.textContent = PHASES[phaseIndex].label;
+      stabilityValue.textContent = `${Math.round(progress * 100)}%`;
+      entropyValue.textContent = (1 - progress * 0.95).toFixed(2);
+      stepValue.textContent = `${phaseIndex + 1} / ${PHASES.length}`;
+      timeLabel.textContent = `${(progress * 3).toFixed(1)}s / 3.0s`;
+      barFill.style.width = `${progress * 100}%`;
+      document.querySelector(".code-panel").style.transform = "translateY(0) scale(1)";
+      document.querySelector(".code-panel").style.filter = "blur(0)";
+      const scan = Math.sin(progress * Math.PI * 1.18);
+      document.querySelector(".code-panel").style.setProperty("--scan", String(scan));
+      document.querySelector(".code-panel").style.setProperty("--scan-progress", String(progress));
+      const panelAfter = document.querySelector(".code-panel");
+      panelAfter.style.setProperty("--scan-opacity", String(Math.max(0, scan) * 0.42));
+      panelAfter.style.setProperty("--scan-y", `${-140 + progress * 240}%`);
+      panelAfter.style.setProperty("--scan-shift", `${Math.max(0, scan) * 0.42}`);
+      panelAfter.style.setProperty("--scan-blur", `${0.1 + Math.max(0, scan) * 0.3}px`);
+      panelAfter.style.setProperty("--scan-bright", `${0.96 + Math.max(0, scan) * 0.06}`);
+
+      lineNodes.forEach((node, index) => {
+        const spec = LINE_SPECS[index];
+        node.className = `line indent-${spec.indent}`;
+        const settleProgress = clamp(progress / spec.settleAt, 0, 1);
+        const noiseWave = Math.sin(progress * 18 + index * 0.7) * 0.8;
+        node.style.left = "0px";
+        node.style.top = "0px";
+        node.style.transform = `translateX(${noiseWave}px)`;
+
+        const revealStarts = [0.03, 0.08, 0.14, 0.2, 0.28, 0.38, 0.5, 0.58, 0.72];
+        const lineReveal = progress >= revealStarts[index];
+
+        if (!lineReveal) {
+          node.innerHTML = "";
+          node.classList.add("dim");
+          node.style.opacity = "0";
+          return;
+        }
+
+        node.style.opacity = "";
+
+        if (progress >= spec.settleAt) {
+          node.textContent = spec.finalText;
+          node.classList.add(progress > 0.985 ? "final" : "settled");
+          node.style.left = "0px";
+          node.style.top = "0px";
+          node.style.transform = "translateX(0)";
+        } else if (progress >= spec.settleAt * 0.18 || progress <= spec.activeUntil) {
+          node.innerHTML = remaskSegment(spec, index, progress, phaseIndex);
+          node.classList.add("active");
+          node.style.transform = `translateX(${noiseWave * 0.6}px)`;
+        } else {
+          node.innerHTML = remaskSegment(spec, index, progress * 0.92, phaseIndex);
+          node.classList.add("dim");
+        }
+
+        if (index === 5 && progress > 0.54 && progress < 0.92) {
+          node.classList.remove("settled", "final");
+          node.classList.add("dim");
+          node.innerHTML = remaskSegment(spec, index, progress * 1.15, phaseIndex);
+        }
+
+        if (index === 6 && progress > 0.64 && progress < 0.95) {
+          node.classList.remove("settled", "final");
+          node.classList.add("active");
+          node.innerHTML = remaskSegment(spec, index, progress * 1.12, phaseIndex);
+        }
+      });
+
+      fragmentNodes.forEach((node, index) => {
+        const fadeIn = clamp(progress / 0.3, 0, 1);
+        const fadeOut = clamp((1 - progress) / 0.82, 0, 1);
+        const fade = Math.min(fadeIn, fadeOut);
+        const driftX = Math.sin(progress * 8 + index) * 3;
+        const driftY = Math.cos(progress * 7 + index * 0.7) * 2;
+        node.style.opacity = String(fade * (0.11 + (index % 3) * 0.04));
+        node.style.transform = `translate(${driftX}px, ${driftY}px) scale(${1 + fade * 0.08})`;
+        node.style.filter = `blur(${0.6 + fade * 0.7}px)`;
+      });
+    }
+
+    function tick(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const progress = clamp((timestamp - startTime) / DURATION_MS, 0, 1);
+      render(progress);
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      }
+    }
+
+    function start() {
+      cancelAnimationFrame(frameId);
+      startTime = 0;
+      render(0);
+      frameId = requestAnimationFrame(tick);
+    }
+
+    replayButton.addEventListener("click", start);
+    start();
+  </script>
+</body>
+</html>
