@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/🚀_SGLang_Ready-purple?style=for-the-badge" alt="SGLang Ready" />
   <img src="https://img.shields.io/badge/🤗_2.5B_Model-brightgreen?style=for-the-badge" alt="2.5B Model" />
   <br><br>
-  <a href="./MinerU-Diffusion-V1.pdf"><img src="https://img.shields.io/badge/📄_Tech_Report-red?style=flat-square" alt="Tech Report" /></a>
+  <a href="./docs/MinerU-Diffusion-V1.pdf"><img src="https://img.shields.io/badge/📄_Tech_Report-red?style=flat-square" alt="Tech Report" /></a>
   <a href="https://huggingface.co/opendatalab/MinerU-Diffusion-V1-0320-2.5B"><img src="https://img.shields.io/badge/🤗_Model-HuggingFace-yellow?style=flat-square" alt="Model" /></a>
   <a href="https://yinjjiew.github.io/projects/openclawrl1"><img src="https://img.shields.io/badge/Blog-Page-blue?style=flat-square" alt="OpenClaw-RL Blog" /></a>
   <a href="https://github.com/sgl-project/sglang"><img src="https://img.shields.io/badge/SGLang-Supported-purple?style=flat-square" alt="SGLang Supported" /></a>
@@ -50,6 +50,30 @@ By introducing block-wise diffusion, uncertainty-driven curriculum learning, it 
 
 > **Highlights:** MinerU-Diffusion maintains a strong accuracy–efficiency trade-off, achieving 2.12× speedup with 99.9% and 3.01× speedup with 98.8% relative accuracy.
 > 
+## 🗂️ Repository Layout
+
+```text
+MinerU-Diffusion/
+├── assets/
+│   ├── banner.png
+│   └── train.png
+├── docs/
+│   └── MinerU-Diffusion-V1.pdf
+├── engines/
+│   ├── hf/
+│   ├── nano_vllm/
+│   └── sglang/
+├── mineru_diffusion/
+│   ├── configuration_mineru_diffusion.py
+│   ├── modeling_mineru_diffusion.py
+│   └── processing_mineru_diffusion.py
+├── scripts/
+│   ├── run_inference.py
+│   └── run_inference.sh
+├── LICENSE
+└── README.md
+```
+
 <details>
 <summary><b>🌈 Features</b></summary>
 
