@@ -117,38 +117,6 @@ IMAGE_PATH=/path/to/input-image.png \
 bash scripts/run_inference.sh
 ```
 
-<details>
-<summary><b>🌈 Features</b></summary>
-
-### Fully Asynchronous 4-Component Architecture
-OpenClaw-RL decouples **agent serving**, **rollout collection**, **PRM/judge evaluation**, and **policy training** into independent async loops. None of them block one another: the model continues serving requests while training runs in the background, and judging happens concurrently with new interactions.
-
-### Self-Hosted & Private by Design
-The entire stack, including the **policy model**, **judge/PRM**, and **trainer**, runs on **your own infrastructure**. Conversation data stays within your system, and no third-party model API is required.
-
-### From Feedback to Gradient — Automatically
-You do not need to manually label data. The system automatically:
-- Organizes multi-turn interactions into session-aware training trajectories
-- Classifies API messages into **main-line** (trainable) vs. **side** (non-trainable) turns
-- Uses the next user, environment, or tool feedback as a natural "next-state" signal
-- Runs PRM/judge evaluation asynchronously, with majority voting when needed for more robust scoring
-- Submits ready samples to the trainer as they become available
-
-### Three Optimization Methods in One Framework
-
-**Binary RL (GRPO):** A Process Reward Model scores each turn based on next-state feedback. The scalar reward is then used with GRPO advantage estimation and a PPO-style clipped surrogate loss.
-
-**On-Policy Distillation (OPD):** When the next state reveals useful hindsight, a judge model extracts a textual hint. This hint augments the original prompt to create an enhanced teacher, whose token-level log-probability gap with the student becomes a directional advantage signal richer than any scalar reward.
-
-**Combination Method:** OpenClaw-RL further combines Binary RL and OPD in a unified training recipe, leveraging the dense scalar supervision of Binary RL together with the richer token-level directional signal from OPD. This combination achieves stronger and more robust optimization than either method alone.
-
-### From Personal Agents to Real-World Agentic RL
-The same framework supports both personalized OpenClaw optimization and scalable RL for **terminal**, **GUI**, **SWE**, and **tool-call** agents in real-world settings.
-
-
-
-</details>
-
 ## 🤝 Acknowledgement
 
 This work is heavily built on the following open-source models:
