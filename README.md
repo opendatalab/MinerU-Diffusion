@@ -93,6 +93,30 @@ MinerU-Diffusion/
 └── README.md
 ```
 
+## 🚀 Inference
+
+Replace `MODEL_PATH` and `IMAGE_PATH` with your own paths before running.
+
+### HF Engine
+
+```bash
+cd /mnt/shared-storage-user/mineru2-shared/niujunbo/niujunbo_dev/MinerU-Diffusion
+ENGINE=hf \
+MODEL_PATH=/path/to/MinerU-Diffusion-model \
+IMAGE_PATH=/path/to/input-image.png \
+bash scripts/run_inference.sh
+```
+
+### Nano-DVLM Engine
+
+```bash
+cd /mnt/shared-storage-user/mineru2-shared/niujunbo/niujunbo_dev/MinerU-Diffusion
+ENGINE=nano_dvlm \
+MODEL_PATH=/path/to/MinerU-Diffusion-model \
+IMAGE_PATH=/path/to/input-image.png \
+bash scripts/run_inference.sh
+```
+
 <details>
 <summary><b>🌈 Features</b></summary>
 
