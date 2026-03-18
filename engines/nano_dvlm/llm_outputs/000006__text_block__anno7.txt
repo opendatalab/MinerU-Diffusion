@@ -1,0 +1,4 @@
+(a) reverse the direction of every vector.  
+(b) project every vector onto the \(x_2\) axis.  
+(c) turn every vector counterclockwise through \(90^\circ\).  
+(d) reflect every vector through the \(45^\circ\) line \(x_1 = x_2\).

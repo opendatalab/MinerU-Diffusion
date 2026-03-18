@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENGINE="${ENGINE:-hf}"
 MODEL_PATH="${MODEL_PATH:-$REPO_DIR/model}"
 IMAGE_PATH="${IMAGE_PATH:-$REPO_DIR/assets/image.png}"
 PROMPT_TYPE="text"
@@ -18,7 +19,7 @@ REMASK_STRATEGY="low_confidence_dynamic"
 DYNAMIC_THRESHOLD="0.95"
 
 python "$REPO_DIR/scripts/run_inference.py" \
-  --engine "${ENGINE:-hf}" \
+  --engine "$ENGINE" \
   --model-path "$MODEL_PATH" \
   --image-path "$IMAGE_PATH" \
   --prompt-type "$PROMPT_TYPE" \

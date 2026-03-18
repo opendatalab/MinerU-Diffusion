@@ -1,14 +1,19 @@
 import argparse
-import os
+import json
+import sys
 import time
 from pathlib import Path
 from shutil import get_terminal_size
 
-os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
-
 import torch
 from termcolor import cprint
-from transformers import AutoModel, AutoProcessor, AutoTokenizer
+
+
+NANO_DVLM_DIR = Path(__file__).resolve().parent
+if str(NANO_DVLM_DIR) not in sys.path:
+    sys.path.insert(0, str(NANO_DVLM_DIR))
+
+from nanovllm import LLM, SamplingParams
 
 
 STOP_STRINGS = ("<|endoftext|>", "<|im_end|>")
@@ -40,20 +45,25 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--remask-strategy", default="low_confidence_dynamic")
     parser.add_argument("--dynamic-threshold", type=float, default=0.95)
+    parser.add_argument("--tensor-parallel-size", type=int, default=1)
+    parser.add_argument("--gpu-memory-utilization", type=float, default=0.8)
+    parser.add_argument("--enforce-eager", action="store_true")
 
 
-def _print_summary(args: argparse.Namespace, model_path: Path, device: str, dtype: torch.dtype) -> None:
+def _print_summary(args: argparse.Namespace, model_path: Path, mask_token_id: int) -> None:
     line = "=" * max(72, min(get_terminal_size((96, 20)).columns, 120))
     cprint(line, color="cyan", attrs=["bold"], flush=True)
-    cprint("MinerU HF Inference", color="cyan", attrs=["bold"], flush=True)
+    cprint("MinerU Nano-DVLM Inference", color="cyan", attrs=["bold"], flush=True)
     cprint("-" * len(line), color="cyan", flush=True)
     cprint(f"{'model':<12}: {model_path}", color="white", flush=True)
     cprint(f"{'image':<12}: {Path(args.image_path).resolve()}", color="white", flush=True)
     cprint(f"{'prompt':<12}: {'custom' if args.prompt else args.prompt_type}", color="white", flush=True)
-    cprint(f"{'device':<12}: {device}", color="white", flush=True)
-    cprint(f"{'dtype':<12}: {dtype}", color="white", flush=True)
+    cprint(f"{'device':<12}: {args.device}", color="white", flush=True)
+    cprint(f"{'dtype':<12}: {args.dtype}", color="white", flush=True)
     cprint(f"{'gen_length':<12}: {args.gen_length}", color="white", flush=True)
     cprint(f"{'block_size':<12}: {args.block_size}", color="white", flush=True)
+    cprint(f"{'tp_size':<12}: {args.tensor_parallel_size}", color="white", flush=True)
+    cprint(f"{'mask_token':<12}: {mask_token_id}", color="white", flush=True)
 
 
 def _print_response(response: str, elapsed: float) -> None:
@@ -66,68 +76,67 @@ def _print_response(response: str, elapsed: float) -> None:
     cprint(f"elapsed: {elapsed:.2f}s", color="cyan", flush=True)
 
 
-def run(args: argparse.Namespace) -> None:
-    prompt = args.prompt or TASK_PROMPTS[args.prompt_type]
-    model_path = Path(args.model_path).resolve()
-    device = args.device
-    dtype = getattr(torch, args.dtype)
+def _load_mask_token_id(model_path: Path) -> int:
+    with open(model_path / "config.json", "r", encoding="utf-8") as fh:
+        config = json.load(fh)
+    mask_token_id = config.get("mask_token_id")
+    if mask_token_id is None:
+        raise ValueError(f"mask_token_id is missing from {model_path / 'config.json'}")
+    return mask_token_id
 
-    start_time = time.time()
-    _print_summary(args, model_path, device, dtype)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-    processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True, use_fast=False)
-    model = AutoModel.from_pretrained(
-        model_path,
-        trust_remote_code=True,
-        dtype=dtype,
-        low_cpu_mem_usage=True,
-    )
-    model = model.eval().to(device)
-
-    mask_token_id = tokenizer.convert_tokens_to_ids("<|MASK|>")
-    messages = [
+def _build_message(image_path: str, prompt: str) -> list[dict]:
+    return [
         {"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]},
-        {"role": "user", "content": [{"type": "image", "image": args.image_path}, {"type": "text", "text": prompt}]},
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": image_path},
+                {"type": "text", "text": prompt},
+            ],
+        },
     ]
 
-    prompt_texts, generation_indices = processor.apply_chat_template(
-        messages,
-        return_assistant_tokens_mask=True,
-        add_generation_prompt=True,
+
+def run(args: argparse.Namespace) -> None:
+    if args.device != "cuda":
+        raise ValueError("nano_dvlm currently supports only --device cuda")
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available for nano_dvlm")
+
+    prompt = args.prompt or TASK_PROMPTS[args.prompt_type]
+    model_path = Path(args.model_path).resolve()
+    mask_token_id = _load_mask_token_id(model_path)
+    start_time = time.time()
+
+    _print_summary(args, model_path, mask_token_id)
+
+    llm = LLM(
+        str(model_path),
+        enforce_eager=args.enforce_eager,
+        tensor_parallel_size=args.tensor_parallel_size,
+        mask_token_id=mask_token_id,
+        block_size=args.block_size,
+        max_model_len=args.max_length,
+        gpu_memory_utilization=args.gpu_memory_utilization,
     )
-    inputs = processor(
-        images=[args.image_path],
-        text=prompt_texts,
-        generation_indices=generation_indices,
-        truncation=True,
-        max_length=args.max_length,
-        return_tensors="pt",
+    sampling_params = SamplingParams(
+        temperature=args.temperature,
+        max_new_tokens=args.gen_length,
+        denoising_strategy=args.remask_strategy,
+        dynamic_threshold=args.dynamic_threshold,
+        stop_tokens=list(STOP_STRINGS),
     )
 
-    input_ids = inputs["input_ids"].to(torch.long).to(device)
-    image_grid_thw = inputs.get("image_grid_thw")
-    if image_grid_thw is not None:
-        image_grid_thw = image_grid_thw.to(torch.long).to(device)
-    pixel_values = inputs["pixel_values"].to(dtype).to(device)
-
-    with torch.no_grad():
-        response_ids, _ = model.generate(
-            pixel_values=pixel_values,
-            image_grid_thw=image_grid_thw,
-            input_ids=input_ids,
-            mask_token_id=mask_token_id,
-            denoising_steps=args.block_size,
-            gen_length=args.gen_length,
-            block_length=args.block_size,
-            temperature=args.temperature,
-            remasking_strategy=args.remask_strategy,
-            dynamic_threshold=args.dynamic_threshold,
-            tokenizer=tokenizer,
-            stopping_criteria=list(STOP_STRINGS),
-        )
-
-    response = tokenizer.decode(response_ids[0], skip_special_tokens=False)
+    results = llm.generate_messages(
+        [_build_message(args.image_path, prompt)],
+        sampling_params=sampling_params,
+        use_tqdm=False,
+    )
+    response = results[0]["text"]
     for stop in STOP_STRINGS:
         response = response.split(stop, 1)[0]
     _print_response(response.strip(), time.time() - start_time)
+
+
+__all__ = ["add_arguments", "run"]

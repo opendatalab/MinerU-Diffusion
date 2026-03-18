@@ -1,0 +1,1 @@
+1.27 True or false, with reason if true and counterexample if false:

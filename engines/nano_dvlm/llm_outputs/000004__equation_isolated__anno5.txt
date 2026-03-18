@@ -1,0 +1,1 @@
+\(\left[ \begin{array}{lll}1 & 0 & 0\\ \ell & 1 & 0\\ m & 0 & 1 \end{array} \right]^n\), \(\left[ \begin{array}{lll}1 & 0 & 0\\ \ell & 1 & 0\\ m & 0 & 1 \end{array} \right]^{-1}\), \(\left[ \begin{array}{lll}1 & 0 & 0\\ \ell & 1 & 0\\ 0 & m & 1 \end{array} \right]^{-1}\).

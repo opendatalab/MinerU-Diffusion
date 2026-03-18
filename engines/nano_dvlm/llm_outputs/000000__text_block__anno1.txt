@@ -1,0 +1,1 @@
+(b) Construct a matrix that has column \(1 + 2(\text{column } 3) = 0\). Check that \(A\) is singular (fewer than 3 pivots) and explain why that must be the case.

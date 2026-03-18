@@ -17,7 +17,7 @@
   <a href="https://huggingface.co/opendatalab/MinerU-Diffusion-V1-0320-2.5B"><img src="https://img.shields.io/badge/🤗_Model-HuggingFace-yellow?style=flat-square" alt="Model" /></a>
   <a href="https://yinjjiew.github.io/projects/openclawrl1"><img src="https://img.shields.io/badge/Blog-Page-blue?style=flat-square" alt="OpenClaw-RL Blog" /></a>
   <a href="https://github.com/sgl-project/sglang"><img src="https://img.shields.io/badge/SGLang-Supported-purple?style=flat-square" alt="SGLang Supported" /></a>
-  <a href="https://github.com/GeeeekExplorer/nano-vllm"><img src="https://img.shields.io/badge/Nano--vLLM-Supported-yellow?style=flat-square" alt="Nano-vLLM Supported" /></a>
+  <a href="https://github.com/GeeeekExplorer/nano-vllm"><img src="https://img.shields.io/badge/Nano--DVLM-Adapted-yellow?style=flat-square" alt="Nano-DVLM Adapted" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License MIT" /></a>
 </p>
 
@@ -37,7 +37,8 @@ replaces autoregressive decoding with block-level parallel diffusion decoding.
 Our long-term goal is to **build efficient and reliable diffusion-based decoding for document OCR**. 
 
 - ✅ **Release MinerU-Diffusion-V1:** A diffusion-based framework for document OCR that replaces autoregressive decoding with block-level parallel diffusion decoding.
-- ✅ Support SGLang to accommodate diffusion computation.
+- ✅ Support [SGLang](https://github.com/sgl-project/sglang) to accommodate diffusion computation.
+- ✅ Complete the [Nano-vLLM](https://github.com/GeeeekExplorer/nano-vllm) adaptation used by our `nano_dvlm` engine for single-GPU inference.
 - ⬜ Release MinerU-Diffusion-V2: More Small, More Faster, More Elegant, More Powerful!
 - ⬜ Release Training Code
 
@@ -79,7 +80,7 @@ MinerU-Diffusion/
 │   └── MinerU-Diffusion-V1.pdf
 ├── engines/
 │   ├── hf/
-│   ├── nano_vllm/
+│   ├── nano_dvlm/
 │   └── sglang/
 ├── mineru_diffusion/
 │   ├── configuration_mineru_diffusion.py
@@ -132,7 +133,7 @@ This work is heavily built on the following open-source models:
 
 These acceleration methods (engines):
 
-[SGLang](https://github.com/sgl-project/sglang), [Nano-vLLM](https://github.com/GeeeekExplorer/nano-vllm), and [jetengine](https://github.com/Labman42/JetEngine/tree/0ddc55ad3fb712b6374515b78d656f420e1a7243),
+[SGLang](https://github.com/sgl-project/sglang), [Nano-vLLM](https://github.com/GeeeekExplorer/nano-vllm) as the upstream basis for our `nano_dvlm` adaptation, and [jetengine](https://github.com/Labman42/JetEngine/tree/0ddc55ad3fb712b6374515b78d656f420e1a7243),
 
 and theoretical foundations:
 
