@@ -74,10 +74,13 @@ MinerU-Diffusion provides a flexible accuracy-throughput trade-off through thres
 MinerU-Diffusion/
 ├── assets/
 │   ├── banner.png
+│   ├── image.png
 │   ├── performance_tradeoff.jpeg
 │   └── train.png
 ├── docs/
-│   └── MinerU-Diffusion-V1.pdf
+│   ├── MinerU-Diffusion-V1.pdf
+│   ├── language_diffusion_demo.html
+│   └── sglang/
 ├── engines/
 │   ├── hf/
 │   ├── nano_dvlm/
@@ -88,7 +91,8 @@ MinerU-Diffusion/
 │   └── processing_mineru_diffusion.py
 ├── scripts/
 │   ├── run_inference.py
-│   └── run_inference.sh
+│   ├── run_inference.sh
+│   └── run_sglang_server.sh
 ├── LICENSE
 └── README.md
 ```
