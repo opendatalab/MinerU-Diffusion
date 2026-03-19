@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import importlib
 import sys
 from pathlib import Path
 
@@ -9,14 +10,15 @@ REPO_DIR = Path(__file__).resolve().parents[1]
 if str(REPO_DIR) not in sys.path:
     sys.path.insert(0, str(REPO_DIR))
 
-from engines import hf, nano_dvlm, sglang
-
-
 ENGINES = {
-    "hf": hf,
-    "nano_dvlm": nano_dvlm,
-    "sglang": sglang,
+    "hf": "engines.hf",
+    "nano_dvlm": "engines.nano_dvlm",
+    "sglang": "engines.sglang",
 }
+
+
+def _load_engine(name: str):
+    return importlib.import_module(ENGINES[name])
 
 
 def parse_args() -> argparse.Namespace:
@@ -28,13 +30,13 @@ def parse_args() -> argparse.Namespace:
         description=f"Run MinerU-Diffusion inference with the {args.engine} engine."
     )
     engine_parser.add_argument("--engine", choices=sorted(ENGINES.keys()), default=args.engine)
-    ENGINES[args.engine].add_arguments(engine_parser)
+    _load_engine(args.engine).add_arguments(engine_parser)
     return engine_parser.parse_args(remaining)
 
 
 def main() -> None:
     args = parse_args()
-    ENGINES[args.engine].run(args)
+    _load_engine(args.engine).run(args)
 
 
 if __name__ == "__main__":

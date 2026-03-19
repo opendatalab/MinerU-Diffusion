@@ -2,7 +2,9 @@ from pathlib import Path
 import shutil
 from nanovllm import LLM, SamplingParams
 from termcolor import cprint
-MODEL_PATH = Path('/mnt/bn/ic-vlm/personal/niujunbo/models/fickle1101/no_merger_sft')
+
+REPO_DIR = Path(__file__).resolve().parents[2]
+MODEL_PATH = REPO_DIR / "model"
 
 def build_message(image: Path):
     
@@ -38,7 +40,7 @@ if __name__ == "__main__":
     )
 
     messages = []
-    images = ['/mnt/bn/ic-vlm/personal/niujunbo/research/dVLM/assets/demo.png']
+    images = [str(REPO_DIR / "assets" / "image.png")]
     for image in images:
         messages.append(build_message(image))
 

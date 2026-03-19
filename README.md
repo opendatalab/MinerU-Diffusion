@@ -100,7 +100,7 @@ Replace `MODEL_PATH` and `IMAGE_PATH` with your own paths before running.
 ### HF Engine
 
 ```bash
-cd /mnt/shared-storage-user/mineru2-shared/niujunbo/niujunbo_dev/MinerU-Diffusion
+cd /path/to/MinerU-Diffusion
 ENGINE=hf \
 MODEL_PATH=/path/to/MinerU-Diffusion-model \
 IMAGE_PATH=/path/to/input-image.png \
@@ -110,12 +110,35 @@ bash scripts/run_inference.sh
 ### Nano-DVLM Engine
 
 ```bash
-cd /mnt/shared-storage-user/mineru2-shared/niujunbo/niujunbo_dev/MinerU-Diffusion
+cd /path/to/MinerU-Diffusion
 ENGINE=nano_dvlm \
 MODEL_PATH=/path/to/MinerU-Diffusion-model \
 IMAGE_PATH=/path/to/input-image.png \
 bash scripts/run_inference.sh
 ```
+
+### SGLang Engine
+
+Start the SGLang server first:
+
+```bash
+cd /path/to/MinerU-Diffusion
+MODEL_PATH=/path/to/MinerU-Diffusion-model \
+bash scripts/run_sglang_server.sh
+```
+
+Then send the request through the unified inference entry:
+
+```bash
+cd /path/to/MinerU-Diffusion
+ENGINE=sglang \
+MODEL_PATH=/path/to/MinerU-Diffusion-model \
+IMAGE_PATH=/path/to/input-image.png \
+SGLANG_SERVER_URL=http://127.0.0.1:31002/v1/chat/completions \
+bash scripts/run_inference.sh
+```
+
+For a more detailed SGLang guide, including environment setup, tokenizer requirements, server launch options, and request examples, see [sglang_notes/README.md](./sglang_notes/README.md).
 
 ## 🤝 Acknowledgement
 
