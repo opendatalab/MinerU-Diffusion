@@ -1,4 +1,4 @@
-import re
+import re, time
 from typing import Optional, Union
 
 import torch
@@ -497,7 +497,8 @@ class SDARForCausalLM(SDARPreTrainedModel, GenerationMixin):
             device=device,
         )
         step_map = torch.zeros_like(tokens, dtype=torch.int64)
-        return x_embeds, tokens, step_map, mask_embeds
+        step_time = torch.zeros_like(tokens, dtype=torch.float)
+        return x_embeds, tokens, step_map, step_time, mask_embeds
 
     @staticmethod
     def _prepare_stop_tokens(
@@ -647,7 +648,7 @@ class SDARForCausalLM(SDARPreTrainedModel, GenerationMixin):
         gen_blocks = gen_length // block_length
         full_attn_mask = self._build_full_attention_mask(prompt_length, gen_length, block_length, inputs_embeds.device)
         position_ids = torch.arange(0, prompt_length + gen_length, device=inputs_embeds.device).unsqueeze(0)
-        x_embeds, x, step_map, mask_embeds = self._initialize_generation_buffers(inputs_embeds, gen_length, mask_token_id)
+        x_embeds, x, step_map, step_time, mask_embeds = self._initialize_generation_buffers(inputs_embeds, gen_length, mask_token_id)
 
         if prompt_length > 0:
             prompt_attn_mask = full_attn_mask[:prompt_length, :prompt_length].unsqueeze(0).unsqueeze(0)
@@ -666,6 +667,7 @@ class SDARForCausalLM(SDARPreTrainedModel, GenerationMixin):
         found_stop_token = False
         stop_pos = -1
         stop_chunk_end = -1
+        start_time = time.perf_counter()
 
         for num_blocks in range(gen_blocks):
             block_start = prompt_length + num_blocks * block_length
@@ -673,6 +675,7 @@ class SDARForCausalLM(SDARPreTrainedModel, GenerationMixin):
             cur_x = x[:, block_start:block_end]
             cur_x_embeds = x_embeds[:, block_start:block_end, :]
             cur_step_map = step_map[:, block_start:block_end]
+            cur_step_time = step_time[:, block_start:block_end]
             cur_attn_mask = full_attn_mask[block_start:block_end, :block_end].unsqueeze(0).unsqueeze(0)
             cur_position_ids = position_ids[:, block_start:block_end]
 
@@ -714,6 +717,7 @@ class SDARForCausalLM(SDARPreTrainedModel, GenerationMixin):
                 cur_x_embeds[transfer_index] = x0_embeds[transfer_index]
                 cur_x[transfer_index] = x0[transfer_index]
                 cur_step_map[transfer_index] = global_step
+                cur_step_time[transfer_index] = time.perf_counter() - start_time
 
             if stop_tokens:
                 generated = x[0, prompt_length:block_end]
@@ -728,8 +732,9 @@ class SDARForCausalLM(SDARPreTrainedModel, GenerationMixin):
         if found_stop_token:
             x = x[:, :stop_pos]
             step_map = step_map[:, :stop_chunk_end]
+            step_time = step_time[:, :stop_chunk_end]
 
-        return x[:, prompt_length:], step_map[:, prompt_length:]
+        return x[:, prompt_length:], step_map[:, prompt_length:], step_time[:, prompt_length:]
 
 
 class MinerUDiffusionForConditionalGeneration(PreTrainedModel, GenerationMixin):
