@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <video src="assets/homepage-demo.mp4" controls width="200"></video>
+  <video src="https://github.com/user-attachments/assets/0d203a40-4503-436d-876f-f70354bd1e63" controls width="200"></video>
 </p>
 
 
