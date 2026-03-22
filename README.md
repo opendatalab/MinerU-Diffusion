@@ -136,8 +136,10 @@ Create and install the environment:
 conda create -n dmineru python=3.12 -y
 conda activate dmineru
 
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+pip install --upgrade pip
+pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+pip install "transformers>=4.52.1"
+pip install -r requirements.txt
 ```
 
 The root-level [`requirements.txt`](./requirements.txt) covers:
