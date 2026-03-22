@@ -90,7 +90,10 @@ MinerU-Diffusion/
 │   ├── __init__.py
 │   ├── configuration_mineru_diffusion.py
 │   ├── modeling_mineru_diffusion.py
-│   └── processing_mineru_diffusion.py
+│   ├── processing_mineru_diffusion.py
+│   └── utils/
+│       ├── __init__.py
+│       └── bbox.py
 ├── requirements.txt
 ├── scripts/
 │   ├── run_inference.py
