@@ -207,6 +207,8 @@ and theoretical foundations:
 
 [MDLM](https://arxiv.org/pdf/2406.07524), [DiffuLLaMA](https://arxiv.org/abs/2410.17891), [Block Diffusion](https://arxiv.org/abs/2503.09573).
 
+For the training code, we also reference [dLLM-RL](https://github.com/Gen-Verse/dLLM-RL).
+
 ## 📚 Citation
 
 If you find our paper and code useful in your research, please consider giving a star and citation.
