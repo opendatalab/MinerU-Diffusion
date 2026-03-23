@@ -16,6 +16,13 @@ from PIL import Image
 from transformers import AutoModel, AutoProcessor, AutoTokenizer
 
 
+REPO_DIR = Path(__file__).resolve().parents[1]
+if str(REPO_DIR) not in sys.path:
+    sys.path.insert(0, str(REPO_DIR))
+
+from mineru_diffusion.utils.bbox import draw_bbox
+
+
 STOP_STRINGS = ("<|endoftext|>", "<|im_end|>")
 SYSTEM_PROMPT = "You are a helpful assistant."
 LAYOUT_IMAGE_SIZE = (1036, 1036)
@@ -83,6 +90,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--image-path", required=True, help="Input page image path.")
     parser.add_argument("--output-path", default=None, help="Optional markdown output path.")
     parser.add_argument("--blocks-json-path", default=None, help="Optional parsed blocks JSON path.")
+    parser.add_argument(
+        "--save-layout-image",
+        action="store_true",
+        help="Save a copy of the input page with detected layout boxes overlaid.",
+    )
+    parser.add_argument("--layout-image-path", default=None, help="Optional output path for the layout visualization.")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--dtype", choices=["bfloat16", "float16", "float32"], default="bfloat16")
     parser.add_argument("--max-length", type=int, default=4096)
@@ -112,6 +125,12 @@ def resolve_default_model_path(repo_dir: Path) -> Path:
     if default_path.exists():
         return default_path.resolve()
     raise FileNotFoundError("Unable to resolve model path. Pass --model-path explicitly.")
+
+
+def resolve_layout_image_path(args: argparse.Namespace, image_path: Path) -> Path:
+    if args.layout_image_path:
+        return Path(args.layout_image_path).expanduser().resolve()
+    return image_path.with_name(f"{image_path.stem}_layout.png")
 
 
 def trim_response(text: str) -> str:
@@ -409,7 +428,7 @@ class DiffusionRunner:
 
 
 def run_end2end(args: argparse.Namespace) -> tuple[str, list[ContentBlock], dict]:
-    repo_dir = Path(__file__).resolve().parents[1]
+    repo_dir = REPO_DIR
     model_path = Path(args.model_path).expanduser().resolve() if args.model_path else resolve_default_model_path(repo_dir)
     image_path = Path(args.image_path).expanduser().resolve()
     if not image_path.exists():
@@ -432,6 +451,11 @@ def run_end2end(args: argparse.Namespace) -> tuple[str, list[ContentBlock], dict
     layout_start = time.perf_counter()
     layout_output = runner.infer(prepare_layout_image(page_image), TASK_PROMPTS["[layout]"], args.layout_gen_length)
     metrics["layout_elapsed"] = time.perf_counter() - layout_start
+
+    layout_image_path = None
+    if args.save_layout_image:
+        layout_image_path = resolve_layout_image_path(args, image_path)
+        draw_bbox(str(image_path), layout_output, str(layout_image_path))
 
     blocks = parse_layout_output(layout_output)
     if args.verbose:
@@ -461,6 +485,8 @@ def run_end2end(args: argparse.Namespace) -> tuple[str, list[ContentBlock], dict
         if should_keep_block(block, args.keep_paratext):
             rendered_parts.append(block.content)
     markdown = "\n\n".join(part for part in rendered_parts if part)
+    if layout_image_path is not None:
+        metrics["layout_image_path"] = str(layout_image_path)
     return markdown, blocks, metrics
 
 
