@@ -23,7 +23,7 @@ TASK_PROMPTS = {
     "layout": "\nLayout Analysis:",
 }
 DEFAULT_MAX_LENGTH = 4096
-DEFAULT_GEN_LENGTH = 1024
+DEFAULT_GEN_LENGTH = 4096
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
