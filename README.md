@@ -39,6 +39,7 @@ Our long-term goal is to **build efficient and reliable diffusion-based decoding
 - ✅ **Release MinerU-Diffusion-V1:** A diffusion-based framework for document OCR that replaces autoregressive decoding with block-level parallel diffusion decoding.
 - ✅ Support [SGLang](https://github.com/sgl-project/sglang) to accommodate diffusion computation.
 - ✅ Complete the [Nano-vLLM](https://github.com/GeeeekExplorer/nano-vllm) adaptation used by our `nano_dvlm` engine for single-GPU inference.
+- ✅ Complete the Gradio-based interactive demo implementation.
 - ⬜ Release MinerU-Diffusion-V2: More Small, More Faster, More Elegant, More Powerful!
 - ⬜ Release Training Code
 
