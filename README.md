@@ -29,7 +29,7 @@
 
 ## 📰 News
 
-- **[2026/3/20]** 🔥 We release **MinerU-Diffusion-V1** — a diffusion-based framework for document OCR that
+- **[2026/3/24]** 🔥 We release **MinerU-Diffusion-V1** — a 2.5B diffusion-based framework for document OCR that
 replaces autoregressive decoding with block-level parallel diffusion decoding.
 
 ## 🎯 Roadmap
