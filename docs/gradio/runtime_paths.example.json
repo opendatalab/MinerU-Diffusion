@@ -1,0 +1,5 @@
+{
+  "mineru_model_path": "/path/to/MinerU2.5-model",
+  "diffusion_model_path": "/path/to/MinerU-Diffusion-hf-model",
+  "layout_font_path": "/path/to/arial.ttf"
+}

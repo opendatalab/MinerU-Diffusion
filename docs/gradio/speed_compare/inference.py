@@ -1,6 +1,9 @@
 import gc
 import json
+import tempfile
 from pathlib import Path
+
+from PIL import Image
 
 from speed_compare.config import (
     DIFFUSION_OUTPUT_PATH,
@@ -38,9 +41,26 @@ def _resolve_image_path(image_path: str | Path) -> Path:
     return image_path
 
 
-def run_mineru_model(image_path: str | Path, prompt_type: str) -> dict:
+def prepare_image_for_prompt(image_path: str | Path, prompt_type: str) -> Path:
     ensure_valid_prompt_type(prompt_type)
-    image_path = _resolve_image_path(image_path)
+    resolved_image_path = _resolve_image_path(image_path)
+    if prompt_type != "layout":
+        return resolved_image_path
+
+    target_size = (1036, 1036)
+    temp_dir = Path(tempfile.gettempdir()) / "mineru_speed_compare"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    output_path = temp_dir / f"{resolved_image_path.stem}_layout_1036x1036.png"
+
+    with Image.open(resolved_image_path) as image:
+        resized = image.convert("RGB").resize(target_size, Image.Resampling.LANCZOS)
+        resized.save(output_path, format="PNG")
+    return output_path.resolve()
+
+
+def run_mineru_model(image_path: str | Path, prompt_type: str, *, assume_prepared: bool = False) -> dict:
+    ensure_valid_prompt_type(prompt_type)
+    image_path = _resolve_image_path(image_path) if assume_prepared else prepare_image_for_prompt(image_path, prompt_type)
     from mineru_hf import infer_mineru
 
     mineru_result = infer_mineru(
@@ -53,9 +73,9 @@ def run_mineru_model(image_path: str | Path, prompt_type: str) -> dict:
     return mineru_result
 
 
-def run_diffusion_model(image_path: str | Path, prompt_type: str) -> dict:
+def run_diffusion_model(image_path: str | Path, prompt_type: str, *, assume_prepared: bool = False) -> dict:
     ensure_valid_prompt_type(prompt_type)
-    image_path = _resolve_image_path(image_path)
+    image_path = _resolve_image_path(image_path) if assume_prepared else prepare_image_for_prompt(image_path, prompt_type)
     from diffusion_hf import infer_diffusion
 
     diffusion_result = infer_diffusion(

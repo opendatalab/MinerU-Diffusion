@@ -3,7 +3,11 @@ from speed_compare.parsers import build_panel_state, format_stats
 
 
 APP_CSS = """
-:root {
+:root,
+body.light,
+.light,
+.gradio-container {
+  --stage-height: calc(100vh - 170px);
   --page-bloom-a: rgba(255, 120, 0, 0.10);
   --page-bloom-b: rgba(77, 163, 255, 0.08);
   --page-bg-start: #fbfbfd;
@@ -30,8 +34,39 @@ APP_CSS = """
   --placeholder-text: rgba(18, 19, 26, 0.14);
 }
 
+.dark,
+body.dark,
+.dark .gradio-container,
+[data-theme="dark"],
+[data-theme="dark"] .gradio-container {
+  --page-bloom-a: rgba(255, 95, 210, 0.08);
+  --page-bloom-b: rgba(255, 255, 255, 0.05);
+  --page-bg-start: #000000;
+  --page-bg-end: #030303;
+  --page-text: #f5f5f5;
+  --panel-border: rgba(255,255,255,0.14);
+  --panel-bg:
+    radial-gradient(circle at 50% 36%, rgba(255,255,255,0.05), transparent 28%),
+    linear-gradient(180deg, rgba(12,12,12,0.96), rgba(4,4,4,0.98));
+  --panel-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+  --muted-text: #8d8d8d;
+  --input-border: rgba(255,255,255,0.16);
+  --chip-bg: rgba(255,255,255,0.04);
+  --chip-text: #f5f5f5;
+  --divider: rgba(255,255,255,0.14);
+  --status-text: #d9d9d9;
+  --stats-text: #d9d9d9;
+  --timeline-bg: rgba(255,255,255,0.12);
+  --output-bg: linear-gradient(180deg, rgba(10,10,10,0.98), rgba(5,5,5,0.98));
+  --output-border: rgba(255,255,255,0.14);
+  --output-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 0 40px rgba(255,255,255,0.08);
+  --output-text: #f2f2f2;
+  --empty-text: #8d8d8d;
+  --placeholder-text: rgba(255,255,255,0.12);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light):not([data-theme="light"]) {
     --page-bloom-a: rgba(255, 95, 210, 0.08);
     --page-bloom-b: rgba(255, 255, 255, 0.05);
     --page-bg-start: #000000;
@@ -73,6 +108,14 @@ APP_CSS = """
   font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
+footer,
+.footer,
+.built-with-gradio,
+[data-testid="footer"],
+button[aria-label="settings"] {
+  display: none !important;
+}
+
 #app-shell {
   gap: 24px;
   align-items: stretch;
@@ -82,7 +125,7 @@ APP_CSS = """
 #left-col,
 #mineru-col,
 #diffusion-col {
-  min-height: calc(100vh - 120px);
+  min-height: var(--stage-height);
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
   box-shadow: var(--panel-shadow);
@@ -93,7 +136,7 @@ APP_CSS = """
 
 #mineru-col,
 #diffusion-col {
-  padding: 0;
+  padding: 0 0 12px;
 }
 
 .panel-title {
@@ -116,6 +159,31 @@ APP_CSS = """
 
 #left-col .gradio-image,
 #left-col .gradio-radio {
+  border-color: var(--input-border) !important;
+  color: var(--page-text) !important;
+}
+
+#left-col label,
+#left-col span,
+#left-col p,
+#left-col .gradio-image button,
+#left-col .gradio-image [role="button"] {
+  color: var(--page-text) !important;
+}
+
+#left-col .gradio-image,
+#left-col .gradio-image > div,
+#left-col .gradio-radio,
+#left-col .gradio-radio > div {
+  background: transparent !important;
+}
+
+#left-col .gradio-image .wrap,
+#left-col .gradio-image .image-container,
+#left-col .gradio-image .image-frame,
+#left-col .gradio-image .upload-container,
+#left-col .gradio-radio .wrap {
+  background: transparent !important;
   border-color: var(--input-border) !important;
 }
 
@@ -189,9 +257,28 @@ APP_CSS = """
   border: none !important;
 }
 
+#mineru-render-toggle,
+#diffusion-render-toggle {
+  margin: 12px 18px 12px !important;
+  border-radius: 14px !important;
+  width: calc(100% - 36px) !important;
+  max-width: calc(100% - 36px) !important;
+  box-sizing: border-box !important;
+  background: linear-gradient(90deg, #4da3ff, #7b61ff 55%, #b46cff) !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+#mineru-render-toggle[disabled],
+#diffusion-render-toggle[disabled] {
+  background: var(--chip-bg) !important;
+  border: 1px solid var(--input-border) !important;
+  color: var(--chip-text) !important;
+}
+
 .replay-stream {
   position: relative;
-  height: calc(100vh - 120px);
+  height: var(--stage-height);
   padding: 26px 24px 22px;
   display: flex;
   flex-direction: column;
@@ -378,20 +465,21 @@ APP_CSS = """
 
 #mineru-col .replay-stream,
 #diffusion-col .replay-stream {
-  padding: 18px 18px 16px;
+  height: calc(var(--stage-height) - 62px);
+  padding: 16px 18px 12px;
 }
 
 #mineru-col .stream-head,
 #diffusion-col .stream-head {
-  flex: 0 0 58px;
-  min-height: 58px;
-  margin-bottom: 4px;
+  flex: 0 0 52px;
+  min-height: 52px;
+  margin-bottom: 2px;
 }
 
 #mineru-col .stream-meta,
 #diffusion-col .stream-meta {
-  flex: 0 0 40px;
-  margin: 0 0 10px;
+  flex: 0 0 36px;
+  margin: 0 0 8px;
 }
 
 #mineru-col .stream-progress,
@@ -419,6 +507,82 @@ APP_CSS = """
 .stream-output.empty {
   color: var(--empty-text);
   font-style: italic;
+}
+
+.rendered-output {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  white-space: normal;
+}
+
+.rendered-pre {
+  width: 100%;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: var(--output-text);
+  font: inherit;
+}
+
+.rendered-error {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 95, 95, 0.28);
+  background: rgba(255, 95, 95, 0.08);
+  color: var(--output-text);
+  padding: 14px 16px;
+  line-height: 1.6;
+}
+
+.rendered-table-wrap,
+.rendered-formula-wrap,
+.rendered-layout-wrap {
+  width: 100%;
+}
+
+.rendered-table-wrap {
+  overflow: auto;
+}
+
+.rendered-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+  color: var(--output-text);
+  font-size: 13px;
+}
+
+.rendered-table th,
+.rendered-table td {
+  border: 1px solid var(--output-border);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rendered-table th {
+  background: rgba(127, 127, 127, 0.10);
+}
+
+.rendered-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.formula-image {
+  margin-bottom: 14px;
+}
+
+.formula-source {
+  margin-top: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  opacity: 0.82;
 }
 
 .chunk {
@@ -463,6 +627,7 @@ APP_CSS = """
     flex: 1 1 100% !important;
     width: 100% !important;
     min-width: 100% !important;
+    gap: 18px;
   }
 
   #mineru-col,
@@ -481,6 +646,11 @@ APP_CSS = """
   .replay-stream {
     height: auto;
     min-height: 680px;
+  }
+
+  #mineru-col,
+  #diffusion-col {
+    padding: 0;
   }
 }
 
@@ -598,6 +768,13 @@ APP_CSS = """
     padding: 16px 14px !important;
   }
 
+  #mineru-render-toggle,
+  #diffusion-render-toggle {
+    width: calc(100% - 28px) !important;
+    max-width: calc(100% - 28px) !important;
+    margin: 12px 14px 12px !important;
+  }
+
   #prompt-grid .wrap {
     grid-template-columns: 1fr;
   }
@@ -609,7 +786,7 @@ def _render_output(output_state: dict, done: bool) -> str:
     fragments = output_state["fragments"]
     if not fragments:
         suffix = "" if done else '<span class="cursor"></span>'
-        return f'<div class="stream-output empty">Waiting for first visible token{suffix}</div>'
+        return f'<div class="stream-output empty">Waiting for generation complete{suffix}</div>'
 
     body = "".join(
         f'<span class="{class_name}">{escape(text)}</span>'
@@ -626,10 +803,10 @@ def _render_stats(stats: str) -> str:
     return f'<div class="stream-stats"><span>{parts[0]}</span><span>{parts[1]}</span></div>'
 
 
-def render_panel(title: str, state: dict) -> str:
+def render_panel(title: str, state: dict, output_html: str | None = None) -> str:
     done = bool(state["done"])
     status_class = "stream-status done" if done else "stream-status"
-    output_html = _render_output(state["output"], done)
+    output_block_html = output_html or _render_output(state["output"], done)
     stats_html = _render_stats(state["stats"])
 
     return f"""
@@ -645,7 +822,7 @@ def render_panel(title: str, state: dict) -> str:
   <div class="stream-clock">
     <strong>{escape(state["clock"])}</strong>
   </div>
-  {output_html}
+  {output_block_html}
 </section>
 """
 
@@ -680,4 +857,18 @@ def build_result_panel(title: str, result: dict, events: list[dict], active_dura
             stats=format_stats(result),
             mode=mode,
         ),
+    )
+
+
+def build_rendered_panel(title: str, result: dict, active_duration: float, status: str, output_html: str) -> str:
+    return render_panel(
+        title,
+        build_panel_state(
+            active_duration=active_duration,
+            local_time=active_duration,
+            status=status,
+            stats=format_stats(result),
+            mode="append",
+        ),
+        output_html=output_html,
     )

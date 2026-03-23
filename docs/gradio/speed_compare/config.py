@@ -70,3 +70,13 @@ def resolve_diffusion_model_path() -> Path:
         "diffusion_model_path",
         "MinerU-Diffusion model path",
     )
+
+
+def resolve_layout_font_path() -> Path | None:
+    raw_value = os.getenv("LAYOUT_FONT_PATH") or _RUNTIME_CONFIG.get("layout_font_path")
+    if not raw_value:
+        return None
+    path = Path(raw_value).expanduser()
+    if not path.exists():
+        return None
+    return path.resolve()
