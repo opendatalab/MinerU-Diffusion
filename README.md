@@ -202,6 +202,80 @@ MinerU-Diffusion supports multiple prompt types for different document parsing t
 
 Replace `MODEL_PATH` and `IMAGE_PATH` with your own paths before running.
 
+### Transformers Example
+
+```python
+import torch
+from transformers import AutoModel, AutoProcessor, AutoTokenizer
+
+model_id = "Niujunbo2002/MinerU-Diffusion-V1-0320-2.5B"
+image_path = "path/to/page.png"
+
+tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+processor = AutoProcessor.from_pretrained(
+    model_id,
+    trust_remote_code=True,
+    use_fast=False,
+)
+model = AutoModel.from_pretrained(
+    model_id,
+    trust_remote_code=True,
+    torch_dtype=torch.bfloat16,
+    low_cpu_mem_usage=True,
+).eval().to("cuda")
+
+messages = [
+    {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant."}]},
+    {
+        "role": "user",
+        "content": [
+            {"type": "image", "image": image_path},
+            {"type": "text", "text": "\nText Recognition:"},
+        ],
+    },
+]
+
+prompt_text = processor.apply_chat_template(messages, add_generation_prompt=True)
+if isinstance(prompt_text, tuple):
+    prompt_text = prompt_text[0]
+
+inputs = processor(
+    images=[image_path],
+    text=prompt_text,
+    truncation=True,
+    max_length=4096,
+    return_tensors="pt",
+)
+input_ids = inputs["input_ids"].to(torch.long).to("cuda")
+pixel_values = inputs["pixel_values"].to(torch.bfloat16).to("cuda")
+image_grid_thw = inputs.get("image_grid_thw")
+if image_grid_thw is not None:
+    image_grid_thw = image_grid_thw.to(torch.long).to("cuda")
+
+with torch.no_grad():
+    generate_outputs = model.generate(
+        pixel_values=pixel_values,
+        image_grid_thw=image_grid_thw,
+        input_ids=input_ids,
+        mask_token_id=tokenizer.convert_tokens_to_ids("<|MASK|>"),
+        denoising_steps=32,
+        gen_length=1024,
+        block_length=32,
+        temperature=1.0,
+        remasking_strategy="low_confidence_dynamic",
+        dynamic_threshold=0.95,
+        tokenizer=tokenizer,
+        stopping_criteria=["<|endoftext|>", "<|im_end|>"],
+    )
+
+output_ids = generate_outputs[0] if isinstance(generate_outputs, tuple) else generate_outputs
+text = tokenizer.decode(output_ids[0], skip_special_tokens=False)
+for stop in ("<|endoftext|>", "<|im_end|>"):
+    text = text.split(stop, 1)[0]
+
+print(text.strip())
+```
+
 ### HF Engine
 
 ```bash
