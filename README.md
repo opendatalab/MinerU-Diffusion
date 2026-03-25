@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/🚀_SGLang_Ready-purple?style=for-the-badge" alt="SGLang Ready" />
   <img src="https://img.shields.io/badge/🤗_2.5B_Model-brightgreen?style=for-the-badge" alt="2.5B Model" />
   <br><br>
-  <a href="./docs/MinerU-Diffusion-V1.pdf"><img src="https://img.shields.io/badge/📄_Tech_Report-red?style=flat-square" alt="Tech Report" /></a>
+  <a href="https://arxiv.org/pdf/2603.22458"><img src="https://img.shields.io/badge/📄_Tech_Report-red?style=flat-square" alt="Tech Report" /></a>
   <a href="https://huggingface.co/opendatalab/MinerU-Diffusion-V1-0320-2.5B"><img src="https://img.shields.io/badge/🤗_Model-HuggingFace-yellow?style=flat-square" alt="Model" /></a>
   <a href="https://huggingface.co/spaces/opendatalab/MinerU-Diffusion-V1-0320-2.5B"><img src="https://img.shields.io/badge/🤗_Demo-HuggingFace-yellow?style=flat-square" alt="Demo on Hugging Face" /></a>
   <a href="https://github.com/sgl-project/sglang"><img src="https://img.shields.io/badge/SGLang-Supported-purple?style=flat-square" alt="SGLang Supported" /></a>
@@ -395,10 +395,10 @@ For the training code, we also reference [dLLM-RL](https://github.com/Gen-Verse/
 If you find our paper and code useful in your research, please consider giving a star and citation.
 
 ```bibtex
-@article{mineru_diffusion,
-  title={MinerU-Diffusion Technical Report},
-  author={MinerU-Team},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
+@article{dong2026minerudiffusion,
+  title={MinerU-Diffusion: Rethinking Document OCR as Inverse Rendering via Diffusion Decoding},
+  author={Dong, Hejun and Niu, Junbo and Wang, Bin and Zeng, Weijun and Zhang, Wentao and He, Conghui},
+  journal={arXiv preprint arXiv:2603.22458},
   year={2026}
 }
 
