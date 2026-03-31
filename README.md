@@ -22,6 +22,12 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License MIT" /></a>
 </p>
 
+<div align="center">
+  <a href="https://huggingface.co/papers/2603.22458">
+    <img src="assets/huggingface_paper_gold_day.svg"/>
+  </a>
+</div>
+
 <p align="center">
   <video src="https://github.com/user-attachments/assets/bf3e73a1-6d24-48b5-9dbe-94efee3993e0" controls width="200" align="center"></video>
 </p>
