@@ -21,6 +21,7 @@ if str(REPO_DIR) not in sys.path:
     sys.path.insert(0, str(REPO_DIR))
 
 from mineru_diffusion.utils.bbox import draw_bbox
+from mineru_diffusion.utils.runtime import maybe_disable_flash_attention, resolve_torch_dtype
 
 
 STOP_STRINGS = ("<|endoftext|>", "<|im_end|>")
@@ -369,12 +370,24 @@ class DiffusionRunner:
     ) -> None:
         self.model_path = model_path
         self.device = device
-        self.torch_dtype = getattr(torch, dtype)
+        flash_attn_disabled = maybe_disable_flash_attention(device)
+        self.torch_dtype, resolved_dtype_name = resolve_torch_dtype(device, dtype)
         self.max_length = max_length
         self.block_size = block_size
         self.temperature = temperature
         self.remask_strategy = remask_strategy
         self.dynamic_threshold = dynamic_threshold
+
+        if flash_attn_disabled:
+            print(
+                "FlashAttention disabled for this GPU; using PyTorch SDPA fallback.",
+                file=sys.stderr,
+            )
+        if resolved_dtype_name != dtype:
+            print(
+                f"CUDA device does not support {dtype}; falling back to {resolved_dtype_name}.",
+                file=sys.stderr,
+            )
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         self.processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True, use_fast=False)
