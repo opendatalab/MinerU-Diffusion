@@ -41,7 +41,7 @@ TASK_PROMPTS = {
     "table": "\nTable Recognition:",
     "equation": "\nFormula Recognition:",
     "[default]": "\nText Recognition:",
-    "[layout]": "\nLayout Analysis:",
+    "[layout]": "\nLayout Detection:",
 }
 
 ANGLE_MAPPING = {
