@@ -10,6 +10,8 @@ import torch
 from termcolor import cprint
 from transformers import AutoModel, AutoProcessor, AutoTokenizer
 
+from mineru_diffusion.utils.runtime import maybe_disable_flash_attention, resolve_torch_dtype
+
 
 STOP_STRINGS = ("<|endoftext|>", "<|im_end|>")
 SYSTEM_PROMPT = "You are a helpful assistant."
@@ -70,7 +72,21 @@ def run(args: argparse.Namespace) -> None:
     prompt = args.prompt or TASK_PROMPTS[args.prompt_type]
     model_path = Path(args.model_path).resolve()
     device = args.device
-    dtype = getattr(torch, args.dtype)
+    flash_attn_disabled = maybe_disable_flash_attention(device)
+    dtype, resolved_dtype_name = resolve_torch_dtype(device, args.dtype)
+
+    if flash_attn_disabled:
+        cprint(
+            "FlashAttention disabled for this GPU; using PyTorch SDPA fallback.",
+            color="yellow",
+            flush=True,
+        )
+    if resolved_dtype_name != args.dtype:
+        cprint(
+            f"CUDA device does not support {args.dtype}; falling back to {resolved_dtype_name}.",
+            color="yellow",
+            flush=True,
+        )
 
     _print_summary(args, model_path, device, dtype)
 
